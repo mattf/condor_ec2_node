@@ -5,6 +5,9 @@
 # NOTES:
 #  o Change in public IP is not detected (Elastic IP)
 #
+# Copyright Matthew Farrellee 2010
+# License: Apache Software License version 2.0
+#
 # chkconfig: 2345 97 11
 # description: Script to setup a Condor node in EC2
 #

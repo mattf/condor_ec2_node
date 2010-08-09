@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+# This script configures Condor on an running EC2 instance.
+#
+# NOTES:
+#  o Change in public IP is not detected (Elastic IP)
+#
+# chkconfig: 2345 97 11
+# description: Script to setup a Condor node in EC2
+#
+
+# Source functions library
+. /etc/init.d/functions
+
+PUBLIC_IP_URL=http://169.254.169.254/2009-04-04/meta-data/public-ipv4
+USER_DATA_URL=http://169.254.169.254/2009-04-04/user-data
+
+CONFIG=/etc/condor/config.d/98ec2_node.config
+HOST_CONFIG=/etc/condor/config.d/97public_ip.config
+
+
+start() {
+   echo $"Configuring Condor EC2 node: "
+
+   echo -n $" Looking for public IP "
+   PUBLIC_IP=$(curl --fail --silent $PUBLIC_IP_URL)
+   if [ $? -ne 0 ]; then
+      failure && echo
+      curl $PUBLIC_IP_URL
+      return 1
+   fi
+   success && echo
+
+   echo -n $" Setting PUBLIC_IP = $PUBLIC_IP "
+   echo "PUBLIC_IP = $PUBLIC_IP" > $HOST_CONFIG
+   [ $? -ne 0  ] && failure && echo && return 1
+   success && echo
+   cat $HOST_CONFIG
+
+   echo -n $" Looking for configuration "
+   curl --fail --silent --output $CONFIG $USER_DATA_URL
+   if [ $? -ne 0 ]; then
+      failure && echo
+      rm $HOST_CONFIG
+      curl $USER_DATA_URL
+      return 1
+   fi
+   success && echo
+   cat $CONFIG
+
+   service condor restart
+}
+
+stop() {
+   echo -n $"Removing Condor EC2 node configuration: "
+   rm -f $CONFIG
+   rm -f $HOST_CONFIG
+   success && echo
+
+   service condor restart
+}
+
+[ -f $CONFIG -a -f $HOST_CONFIG ]
+CONFIGURED=$?
+
+case "$1" in
+   start)
+      [ $CONFIGURED -eq 0 ] && exit 0
+      start
+      RETVAL=$?
+    ;;
+   stop)
+      [ $CONFIGURED -eq 0 ] || exit 0
+      stop
+      RETVAL=$?
+    ;;
+   restart|reload|force-reload)
+      [ $CONFIGURED -eq 0 ] && stop
+      start
+      RETVAL=$?
+    ;;
+   condrestart|try-restart)
+      [ $CONFIGURED -eq 0 ] || exit 0
+      stop
+      start
+      RETVAL=$?
+    ;;
+   status)
+      if [ $CONFIGURED -eq 0 ]; then
+         echo "$HOST_CONFIG -"
+         cat $HOST_CONFIG
+         echo "$CONFIG -"
+	 cat $CONFIG
+         RETVAL=0
+      else
+         echo $"$CONFIG and $HOST_CONFIG are not configured"
+         RETVAL=3
+      fi
+    ;;
+   *)
+      echo $"Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status}"
+      RETVAL=2
+    ;;
+esac
+
+exit $RETVAL

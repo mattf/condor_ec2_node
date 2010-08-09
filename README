@@ -1,0 +1,13 @@
+Copyright Matthew Farrellee 2010
+Licensed under Apache Software License version 2.0
+
+condor-ec2-node.init -
+
+ o A script to install as /etc/init.d/condor-ec2-node
+ o Requires /etc/condor/config.d (condor-7.4.4-0.8+)
+ o Provides PUBLIC_IP (from 2009-04-04/meta-data/public-ipv4) to Condor
+   configuration
+ o Provides a Condor configuration from instance user-data
+   (2009-04-04/user-data)
+ o Recommended that the script is enabled on startup before Condor's
+

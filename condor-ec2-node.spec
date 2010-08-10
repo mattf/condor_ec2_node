@@ -39,6 +39,17 @@ rm -rf $RPM_BUILD_ROOT
 %_initrddir/condor-ec2-node
 
 
+%post
+/sbin/chkconfig --add condor-ec2-node
+
+
+%preun
+if [ $1 = 0 ]; then
+  /sbin/service condor-ec2-node stop >/dev/null 2>&1 || :
+  /sbin/chkconfig --del condor-ec2-node
+fi
+
+
 %changelog
 * Mon Aug  9 2010  <matt@redhat> - 0.1-1
 - Initial release
